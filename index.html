@@ -147,10 +147,10 @@
         </div>
         <div class="mt-8 text-cyan-400 font-bold cyber-font tracking-widest animate-pulse text-xl text-center">
             MEMUAT SISTEM INTI...<br>
-            <span class="text-sm font-mono text-emerald-400 mt-2 block">Inisialisasi Save Engine & LocalStorage v7.4</span>
+            <span class="text-sm font-mono text-emerald-400 mt-2 block">Inisialisasi Save Engine & LocalStorage v7.6</span>
         </div>
         <div class="w-72 h-3 bg-slate-900 rounded-full mt-5 overflow-hidden">
-            <div class="h-full bg-cyan-500 animate-[loadingBar_2s_ease-in-out_forwards]"></div>
+            <div class="h-full bg-cyan-500 animate-[loadingBar_1.5s_ease-in-out_forwards]"></div>
         </div>
     </div>
     <style>@keyframes loadingBar { 0% { width: 0%; } 100% { width: 100%; } }</style>
@@ -765,11 +765,18 @@
                 matchToEdit.s1 = isNaN(newS1) ? 0 : newS1;
                 matchToEdit.s2 = isNaN(newS2) ? 0 : newS2;
                 
+                // FIXED: Paksa status menjadi FT agar poin grup otomatis dikalkulasi 
+                matchToEdit.status = 'FT';
+                matchToEdit.live = false;
+                
                 recalculateGroupPoints();
                 renderGroupsWorkflow();
                 renderScheduleTable();
                 renderLiveWidgets();
                 updateKnockoutBracket();
+                
+                // FIXED: Otomatis simpan state setelah di edit ke memori browser
+                saveSimulationState();
                 
                 const ds1 = document.getElementById('dash-s1'); 
                 if(ds1) triggerFlash(ds1.parentElement);
@@ -819,26 +826,50 @@
             "Grup L": { teams: ["Inggris", "Kroasia", "Ghana", "Panama"], pts: [0, 0, 0, 0] }
         };
 
-        // 12 Pertandingan Awal (Terjaga state historinya)
+        // FIXED: Database Pertandingan 1 s/d 36 Diisi Akurat Sesuai Foto
         let scheduleData = [
-            { id: 1, datetime: "Kam, 11 Jun, 15:00", stage: "A", status: "FT", team1: "Meksiko", team2: "Afrika Selatan", venue: "Mexico City", locationInfo: "Azteca Stadium", s1: 2, s2: 1, live: false },
-            { id: 2, datetime: "Kam, 11 Jun, 22:00", stage: "A", status: "FT", team1: "Korea Selatan", team2: "Ceko", venue: "Zapopan", locationInfo: "Estadio Akron", s1: 0, s2: 2, live: false },
-            { id: 3, datetime: "Jum, 12 Jun, 15:00", stage: "B", status: "FT", team1: "Kanada", team2: "Bosnia", venue: "Toronto", locationInfo: "BMO Field", s1: 3, s2: 1, live: false },
-            { id: 4, datetime: "Jum, 12 Jun, 21:00", stage: "B", status: "FT", team1: "Qatar", team2: "Swiss", venue: "Santa Clara", locationInfo: "Levi's Stadium", s1: 1, s2: 1, live: false },
-            { id: 5, datetime: "Sab, 13 Jun, 15:00", stage: "C", status: "FT", team1: "Brasil", team2: "Maroko", venue: "East Rutherf.", locationInfo: "MetLife Stadium", s1: 2, s2: 0, live: false },
-            { id: 6, datetime: "Sab, 13 Jun, 18:00", stage: "C", status: "FT", team1: "Haiti", team2: "Skotlandia", venue: "Foxborough", locationInfo: "Gillette Stadium", s1: 1, s2: 3, live: false },
-            { id: 7, datetime: "Sab, 13 Jun, 21:00", stage: "D", status: "FT", team1: "Amerika Serikat", team2: "Paraguay", venue: "Inglewood", locationInfo: "SoFi Stadium", s1: 2, s2: 2, live: false },
-            { id: 8, datetime: "Min, 14 Jun, 00:00", stage: "D", status: "FT", team1: "Australia", team2: "Turki", venue: "Vancouver", locationInfo: "BC Place", s1: 0, s2: 1, live: false },
-            { id: 9, datetime: "Min, 14 Jun, 13:00", stage: "E", status: "LIVE", team1: "Jerman", team2: "Curacao", venue: "Houston", locationInfo: "NRG Stadium", s1: 3, s2: 0, live: true },
-            { id: 10, datetime: "Min, 14 Jun, 16:00", stage: "E", status: "Upcoming", team1: "Pantai Gading", team2: "Ekuador", venue: "Philadelphia", locationInfo: "Lincoln Financial", s1: "-", s2: "-", live: false },
-            { id: 11, datetime: "Min, 14 Jun, 19:00", stage: "F", status: "Upcoming", team1: "Belanda", team2: "Jepang", venue: "Arlington", locationInfo: "AT&T Stadium", s1: "-", s2: "-", live: false },
-            { id: 12, datetime: "Min, 14 Jun, 22:00", stage: "F", status: "Upcoming", team1: "Swedia", team2: "Tunisia", venue: "Guadalupe", locationInfo: "Estadio BBVA", s1: "-", s2: "-", live: false }
+            { id: 1, datetime: "12 Jun 2026, 02:00", stage: "A", status: "FT", team1: "Meksiko", team2: "Afrika Selatan", venue: "Mexico City", locationInfo: "Azteca Stadium", s1: 2, s2: 0, live: false },
+            { id: 2, datetime: "12 Jun 2026, 09:00", stage: "A", status: "FT", team1: "Korea Selatan", team2: "Ceko", venue: "Zapopan", locationInfo: "Estadio Akron", s1: 2, s2: 1, live: false },
+            { id: 3, datetime: "13 Jun 2026, 02:00", stage: "B", status: "FT", team1: "Kanada", team2: "Bosnia", venue: "Toronto", locationInfo: "BMO Field", s1: 1, s2: 1, live: false },
+            { id: 4, datetime: "13 Jun 2026, 08:00", stage: "D", status: "FT", team1: "Amerika Serikat", team2: "Paraguay", venue: "Inglewood", locationInfo: "SoFi Stadium", s1: 4, s2: 1, live: false },
+            { id: 5, datetime: "14 Jun 2026, 08:00", stage: "C", status: "FT", team1: "Haiti", team2: "Skotlandia", venue: "Foxborough", locationInfo: "Gillette Stadium", s1: 0, s2: 1, live: false },
+            { id: 6, datetime: "14 Jun 2026, 11:00", stage: "D", status: "FT", team1: "Australia", team2: "Turki", venue: "Vancouver", locationInfo: "BC Place", s1: 2, s2: 0, live: false },
+            { id: 7, datetime: "14 Jun 2026, 05:00", stage: "C", status: "FT", team1: "Brasil", team2: "Maroko", venue: "East Rutherf.", locationInfo: "MetLife Stadium", s1: 1, s2: 1, live: false },
+            { id: 8, datetime: "14 Jun 2026, 02:00", stage: "B", status: "FT", team1: "Qatar", team2: "Swiss", venue: "Santa Clara", locationInfo: "Levi's Stadium", s1: 1, s2: 1, live: false },
+            { id: 9, datetime: "15 Jun 2026, 06:00", stage: "E", status: "FT", team1: "Pantai Gading", team2: "Ekuador", venue: "Philadelphia", locationInfo: "Lincoln Financial", s1: 1, s2: 0, live: false },
+            { id: 10, datetime: "15 Jun 2026, 00:00", stage: "E", status: "FT", team1: "Jerman", team2: "Curacao", venue: "Houston", locationInfo: "NRG Stadium", s1: 7, s2: 1, live: false },
+            { id: 11, datetime: "15 Jun 2026, 03:00", stage: "F", status: "FT", team1: "Belanda", team2: "Jepang", venue: "Arlington", locationInfo: "AT&T Stadium", s1: 2, s2: 2, live: false },
+            { id: 12, datetime: "15 Jun 2026, 09:00", stage: "F", status: "FT", team1: "Swedia", team2: "Tunisia", venue: "Guadalupe", locationInfo: "Estadio BBVA", s1: 5, s2: 1, live: false },
+            { id: 13, datetime: "16 Jun 2026, 05:00", stage: "H", status: "FT", team1: "Arab Saudi", team2: "Uruguay", venue: "Miami Gardens", locationInfo: "Hard Rock Stadium", s1: 1, s2: 1, live: false },
+            { id: 14, datetime: "15 Jun 2026, 23:00", stage: "H", status: "FT", team1: "Spanyol", team2: "Tanjung Verde", venue: "Atlanta", locationInfo: "Mercedes-Benz", s1: 0, s2: 0, live: false },
+            { id: 15, datetime: "16 Jun 2026, 08:00", stage: "G", status: "FT", team1: "Iran", team2: "Selandia Baru", venue: "Inglewood", locationInfo: "SoFi Stadium", s1: 2, s2: 2, live: false },
+            { id: 16, datetime: "16 Jun 2026, 02:00", stage: "G", status: "FT", team1: "Belgia", team2: "Mesir", venue: "Seattle", locationInfo: "Lumen Field", s1: 1, s2: 1, live: false },
+            { id: 17, datetime: "17 Jun 2026, 02:00", stage: "I", status: "FT", team1: "Prancis", team2: "Senegal", venue: "East Rutherf.", locationInfo: "MetLife Stadium", s1: 3, s2: 1, live: false },
+            { id: 18, datetime: "17 Jun 2026, 05:00", stage: "I", status: "FT", team1: "Irak", team2: "Norwegia", venue: "Foxborough", locationInfo: "Gillette Stadium", s1: 1, s2: 4, live: false },
+            { id: 19, datetime: "17 Jun 2026, 08:00", stage: "J", status: "FT", team1: "Argentina", team2: "Aljazair", venue: "Kansas City", locationInfo: "Arrowhead Stadium", s1: 3, s2: 0, live: false },
+            { id: 20, datetime: "17 Jun 2026, 11:00", stage: "J", status: "Upcoming", team1: "Austria", team2: "Yordania", venue: "Santa Clara", locationInfo: "Levi's Stadium", s1: "-", s2: "-", live: false },
+            { id: 21, datetime: "18 Jun 2026, 06:00", stage: "L", status: "Upcoming", team1: "Ghana", team2: "Panama", venue: "Toronto", locationInfo: "BMO Field", s1: "-", s2: "-", live: false },
+            { id: 22, datetime: "18 Jun 2026, 03:00", stage: "L", status: "Upcoming", team1: "Inggris", team2: "Kroasia", venue: "Arlington", locationInfo: "AT&T Stadium", s1: "-", s2: "-", live: false },
+            { id: 23, datetime: "18 Jun 2026, 00:00", stage: "K", status: "Upcoming", team1: "Portugal", team2: "RD Kongo", venue: "Houston", locationInfo: "NRG Stadium", s1: "-", s2: "-", live: false },
+            { id: 24, datetime: "18 Jun 2026, 09:00", stage: "K", status: "Upcoming", team1: "Uzbekistan", team2: "Kolombia", venue: "Mexico City", locationInfo: "Azteca Stadium", s1: "-", s2: "-", live: false },
+            { id: 25, datetime: "18 Jun 2026, 23:00", stage: "A", status: "Upcoming", team1: "Ceko", team2: "Afrika Selatan", venue: "Atlanta", locationInfo: "Mercedes-Benz", s1: "-", s2: "-", live: false },
+            { id: 26, datetime: "19 Jun 2026, 02:00", stage: "B", status: "Upcoming", team1: "Swiss", team2: "Bosnia", venue: "Inglewood", locationInfo: "SoFi Stadium", s1: "-", s2: "-", live: false },
+            { id: 27, datetime: "19 Jun 2026, 05:00", stage: "B", status: "Upcoming", team1: "Kanada", team2: "Qatar", venue: "Vancouver", locationInfo: "BC Place", s1: "-", s2: "-", live: false },
+            { id: 28, datetime: "19 Jun 2026, 08:00", stage: "A", status: "Upcoming", team1: "Meksiko", team2: "Korea Selatan", venue: "Zapopan", locationInfo: "Estadio Akron", s1: "-", s2: "-", live: false },
+            { id: 29, datetime: "20 Jun 2026, 08:00", stage: "C", status: "Upcoming", team1: "Brasil", team2: "Haiti", venue: "Philadelphia", locationInfo: "Lincoln Financial", s1: "-", s2: "-", live: false },
+            { id: 30, datetime: "20 Jun 2026, 05:00", stage: "C", status: "Upcoming", team1: "Skotlandia", team2: "Maroko", venue: "Foxborough", locationInfo: "Gillette Stadium", s1: "-", s2: "-", live: false },
+            { id: 31, datetime: "20 Jun 2026, 11:00", stage: "D", status: "Upcoming", team1: "Turki", team2: "Paraguay", venue: "Santa Clara", locationInfo: "Levi's Stadium", s1: "-", s2: "-", live: false },
+            { id: 32, datetime: "20 Jun 2026, 02:00", stage: "D", status: "Upcoming", team1: "Amerika Serikat", team2: "Australia", venue: "Seattle", locationInfo: "Lumen Field", s1: "-", s2: "-", live: false },
+            { id: 33, datetime: "21 Jun 2026, 03:00", stage: "E", status: "Upcoming", team1: "Jerman", team2: "Pantai Gading", venue: "Toronto", locationInfo: "BMO Field", s1: "-", s2: "-", live: false },
+            { id: 34, datetime: "21 Jun 2026, 07:00", stage: "E", status: "Upcoming", team1: "Ekuador", team2: "Curacao", venue: "Kansas City", locationInfo: "Arrowhead Stadium", s1: "-", s2: "-", live: false },
+            { id: 35, datetime: "21 Jun 2026, 00:00", stage: "F", status: "Upcoming", team1: "Belanda", team2: "Swedia", venue: "Houston", locationInfo: "NRG Stadium", s1: "-", s2: "-", live: false },
+            { id: 36, datetime: "21 Jun 2026, 11:00", stage: "F", status: "Upcoming", team1: "Tunisia", team2: "Jepang", venue: "Guadalupe", locationInfo: "Estadio BBVA", s1: "-", s2: "-", live: false }
         ];
 
-        // Generator 104 Matches Database
+        // Generator Dinamis untuk Match Sisa (37 - 104)
         (function() {
-            let matchCount = 13;
-            let d = new Date(2026, 5, 15, 10, 0);
+            let matchCount = 37; 
+            let d = new Date(2026, 5, 22, 10, 0); 
             let dayArr = ['Min','Sen','Sel','Rab','Kam','Jum','Sab'];
             let monArr = ['Jan','Feb','Mar','Apr','Mei','Jun','Jul','Ags','Sep','Okt','Nov','Des'];
             
@@ -850,7 +881,6 @@
 
             let groupKeys = Object.keys(groupsConfig);
             
-            // Sisa Fase Grup (13 s/d 72)
             for(let i = matchCount; i <= 72; i++) {
                 d.setHours(d.getHours() + 4); 
                 let dtStr = `${dayArr[d.getDay()]}, ${d.getDate()} ${monArr[d.getMonth()]}, ${String(d.getHours()).padStart(2,'0')}:00`;
@@ -868,7 +898,6 @@
                 });
             }
             
-            // Laga Knockout (73 s/d 104)
             for(let i = 73; i <= 104; i++) {
                 d.setHours(d.getHours() + 6);
                 let dtStr = `${dayArr[d.getDay()]}, ${d.getDate()} ${monArr[d.getMonth()]}, ${String(d.getHours()).padStart(2,'0')}:00`;
@@ -884,9 +913,9 @@
             }
         })();
 
-        // --- SISTEM LOCAL STORAGE (SAVE & RESET ENGINE v7.4) ---
+        // --- FIXED: Ganti KEY Storage ke V76 untuk memotong masalah Cache GitHub ---
         function saveSimulationState() {
-            localStorage.setItem('wc_v74_scheduleData', JSON.stringify(scheduleData));
+            localStorage.setItem('wc_v76_scheduleData', JSON.stringify(scheduleData));
             let toast = document.getElementById('sync-toast');
             toast.innerHTML = `<i class="fa-solid fa-floppy-disk animate-bounce"></i> PROGRESS TERSIMPAN! DATA DIAMANKAN.`;
             toast.classList.replace('bg-emerald-900/90', 'bg-blue-900/90');
@@ -904,21 +933,29 @@
 
         function resetSimulationState() {
             if(confirm("Anda yakin ingin mereset seluruh histori simulasi kembali ke awal? Progress yang tidak disimpan akan hilang.")) {
-                localStorage.removeItem('wc_v74_scheduleData');
+                localStorage.removeItem('wc_v76_scheduleData');
                 location.reload();
             }
         }
 
+        // --- FIXED: Modul Load dibalut Try-Catch mencegah Crash karena format lama ---
         function loadSimulationState() {
-            let saved = localStorage.getItem('wc_v74_scheduleData');
-            if(saved) {
-                scheduleData = JSON.parse(saved);
-                let mLive = scheduleData.find(m => m.live);
-                if(mLive) currentLiveMin = 65; 
+            try {
+                let saved = localStorage.getItem('wc_v76_scheduleData');
+                if(saved) {
+                    let parsed = JSON.parse(saved);
+                    if(Array.isArray(parsed) && parsed.length > 0) {
+                        scheduleData = parsed;
+                        let mLive = scheduleData.find(m => m.live);
+                        if(mLive) currentLiveMin = 65; 
+                    }
+                }
+            } catch (e) {
+                console.error("Gagal membaca LocalStorage:", e);
+                localStorage.removeItem('wc_v76_scheduleData');
             }
         }
         
-        // Eksekusi Pemuatan Save Data setelah Generator Database berjalan
         loadSimulationState();
 
         let currentLiveMin = 65;
@@ -953,44 +990,56 @@
             });
         }
 
-        window.onload = function() {
-            setTimeout(() => {
-                const loader = document.getElementById('startup-loader');
-                loader.classList.add('opacity-0');
-                setTimeout(() => loader.remove(), 1000);
-            }, 2500);
-
-            let datalist = document.getElementById('countries-datalist');
-            Object.values(groupsConfig).forEach(g => {
-                g.teams.forEach(t => {
-                    let opt = document.createElement('option');
-                    opt.value = t;
-                    datalist.appendChild(opt);
-                });
-            });
-
-            renderIndependentFavs();
-            recalculateGroupPoints();
-            renderGroupsWorkflow();
-            renderScheduleTable();
-            renderLiveWidgets();
-            updateKnockoutBracket(); 
+        // --- FIXED: DOMContentLoaded & Fail-Safe Auto Remove Loader ---
+        document.addEventListener('DOMContentLoaded', function() {
             
-            setInterval(() => {
-                let d = new Date();
-                let dayName = d.toLocaleDateString('id-ID', { weekday: 'long' });
-                let dateStr = d.toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' });
-                let timeStringFull = d.toLocaleTimeString('id-ID', { timeZoneName: 'short' });
-                let timeJustClock = d.toLocaleTimeString('id-ID', { hour12: false });
-                
-                document.getElementById("header-clock").innerText = `${dayName}, ${dateStr} • ${timeStringFull}`;
-                document.getElementById("chat-live-clock-rig").innerText = `${dayName}, ${timeStringFull}`;
-                document.getElementById("screensaver-live-clock").innerText = timeJustClock;
-                document.getElementById("screensaver-date").innerText = `${dayName.toUpperCase()}, ${dateStr.toUpperCase()}`;
-            }, 1000);
+            // Mekanisme Fail-Safe: Jika CSS Tailwind macet, hilangkan loader secara instan
+            const removeLoader = () => {
+                const loader = document.getElementById('startup-loader');
+                if(loader) {
+                    loader.classList.add('opacity-0');
+                    setTimeout(() => { if(loader.parentNode) loader.remove(); }, 1000);
+                }
+            };
+            setTimeout(removeLoader, 1500); // 1.5 detik maksimal untuk memuat
 
-            startAutoUpdateEngine();
-        };
+            try {
+                let datalist = document.getElementById('countries-datalist');
+                Object.values(groupsConfig).forEach(g => {
+                    g.teams.forEach(t => {
+                        let opt = document.createElement('option');
+                        opt.value = t;
+                        if(datalist) datalist.appendChild(opt);
+                    });
+                });
+
+                renderIndependentFavs();
+                recalculateGroupPoints();
+                renderGroupsWorkflow();
+                renderScheduleTable();
+                renderLiveWidgets();
+                updateKnockoutBracket(); 
+                
+                setInterval(() => {
+                    let d = new Date();
+                    let dayName = d.toLocaleDateString('id-ID', { weekday: 'long' });
+                    let dateStr = d.toLocaleDateString('id-ID', { year: 'numeric', month: 'short', day: 'numeric' });
+                    let timeStringFull = d.toLocaleTimeString('id-ID', { timeZoneName: 'short' });
+                    let timeJustClock = d.toLocaleTimeString('id-ID', { hour12: false });
+                    
+                    let hc = document.getElementById("header-clock"); if(hc) hc.innerText = `${dayName}, ${dateStr} • ${timeStringFull}`;
+                    let clc = document.getElementById("chat-live-clock-rig"); if(clc) clc.innerText = `${dayName}, ${timeStringFull}`;
+                    let slc = document.getElementById("screensaver-live-clock"); if(slc) slc.innerText = timeJustClock;
+                    let sd = document.getElementById("screensaver-date"); if(sd) sd.innerText = `${dayName.toUpperCase()}, ${dateStr.toUpperCase()}`;
+                }, 1000);
+
+                startAutoUpdateEngine();
+            } catch (err) {
+                console.error("Initialization Error:", err);
+                removeLoader();
+                alert("Ada kesalahan saat memuat antarmuka. Pastikan jaringan internet Anda stabil untuk menarik *library* tambahan dari luar server Github.");
+            }
+        });
 
         function switchTabV2(tabId) {
             document.querySelectorAll('.tab-btn').forEach(b => {
@@ -1024,6 +1073,7 @@
 
         function renderGroupsWorkflow() {
             const el = document.getElementById("groups-container-box");
+            if(!el) return;
             el.innerHTML = "";
             Object.keys(groupsConfig).forEach(gName => {
                 let gData = groupsConfig[gName];
@@ -1044,6 +1094,7 @@
 
         function renderScheduleTable() {
             const tbody = document.getElementById("schedule-table-body-box");
+            if(!tbody) return;
             tbody.innerHTML = "";
             scheduleData.forEach(m => {
                 let statusBadge = m.status === 'LIVE' ? `<span class="bg-red-900/80 text-red-400 px-3 py-1.5 rounded-lg text-xs font-bold animate-pulse border border-red-500/50 shadow-[0_0_10px_rgba(239,68,68,0.4)]">LIVE <span id="tbl-min-${m.id}">${currentLiveMin}</span>'</span>` : (m.status === 'FT' ? `<span class="text-gray-300 font-bold bg-slate-800 border border-slate-600 px-3 py-1.5 rounded-lg shadow-inner text-xs">FT</span>` : `<span class="text-amber-500 font-bold bg-amber-950/40 px-3 py-1.5 rounded-lg text-xs border border-amber-900/50 shadow-inner">ID: #${m.id}</span>`);
@@ -1101,8 +1152,11 @@
             const ssLive = document.getElementById("ss-live-widget");
 
             if(mLive) {
-                document.getElementById("live-indicator-badge").innerText = "AKTIF";
-                document.getElementById("live-indicator-badge").classList.add("bg-emerald-950", "text-emerald-400", "animate-pulse");
+                let liBadge = document.getElementById("live-indicator-badge");
+                if (liBadge) {
+                    liBadge.innerText = "AKTIF";
+                    liBadge.classList.add("bg-emerald-950", "text-emerald-400", "animate-pulse");
+                }
 
                 if(dashLive) {
                     dashLive.innerHTML = `
@@ -1139,9 +1193,12 @@
                     `;
                 }
             } else {
-                document.getElementById("live-indicator-badge").innerText = "JEDA";
-                document.getElementById("live-indicator-badge").classList.remove("bg-emerald-950", "text-emerald-400", "animate-pulse");
-                document.getElementById("live-indicator-badge").classList.add("bg-slate-800", "text-gray-400");
+                let liBadge = document.getElementById("live-indicator-badge");
+                if (liBadge) {
+                    liBadge.innerText = "JEDA";
+                    liBadge.classList.remove("bg-emerald-950", "text-emerald-400", "animate-pulse");
+                    liBadge.classList.add("bg-slate-800", "text-gray-400");
+                }
                 
                 if(dashLive) dashLive.innerHTML = `<div class="bg-black/40 p-5 rounded-xl border border-slate-700 text-center text-gray-400 font-semibold text-base">Semua laga pada database telah selesai atau dijeda.</div>`;
                 if(ssLive) ssLive.innerHTML = `<div class="text-center text-gray-400 mt-12 font-bold cyber-font tracking-widest text-2xl">TIDAK ADA PERTANDINGAN LIVE</div>`;
@@ -1328,11 +1385,12 @@
 
         function runMonteCarloEngine() {
             const ind = document.getElementById("sim-indicator");
-            ind.innerHTML = `<i class="fa-solid fa-rotate animate-spin mr-2"></i> Mengkalkulasi data grup saat ini...`;
+            if(ind) ind.innerHTML = `<i class="fa-solid fa-rotate animate-spin mr-2"></i> Mengkalkulasi data grup saat ini...`;
             
             setTimeout(() => {
-                ind.innerHTML = `<i class="fa-solid fa-check text-emerald-400 mr-2"></i> Probabilitas berhasil disinkronkan dari Klasemen.`;
+                if(ind) ind.innerHTML = `<i class="fa-solid fa-check text-emerald-400 mr-2"></i> Probabilitas berhasil disinkronkan dari Klasemen.`;
                 const pBox = document.getElementById("probabilities-box-rig");
+                if(!pBox) return;
                 pBox.innerHTML = "";
                 
                 let allTeams = [];
